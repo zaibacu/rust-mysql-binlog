@@ -454,23 +454,40 @@ impl EventData {
                 let null_bitmask_size = (num_columns + 7) >> 3;
                 let null_bitmap_source = read_nbytes(&mut cursor, null_bitmask_size)?;
                 let nullable_bitmap = BitSet::from_slice(num_columns, &null_bitmap_source).unwrap();
-
-                let pos = cursor.tell()? as usize;
-                let mut column_names = Vec::new();
                 // Optional metadata
-                loop {
+                let mut column_names = Vec::new();
+                let mut pos = cursor.tell()? as usize;
+                while pos < data.len() {
                     let value_type = OptionalMetadata::from_byte(cursor.read_u8()?);
                     let l = read_variable_length_integer(&mut cursor)? as usize;
                     match value_type {
                         OptionalMetadata::ColumnName => {
                             let column_name = read_one_byte_length_prefixed_string(&mut cursor)?;
                             column_names.push(column_name);
-                            break; // We only care about column name at this point
                         },
-                        _ => {}
+                        _ => {
+                            let _value = read_nbytes(&mut cursor, l);
+                        }
+                    }
+                    pos = cursor.tell()? as usize;
+                } 
+                //let value_type = OptionalMetadata::from_byte(cursor.read_u8()?);
+                //println!("Value type: {:?}", value_type);
+                /*loop {
+                    let value_type = OptionalMetadata::from_byte(cursor.read_u8()?);
+                    println!("Value type: {:?}", value_type);
+                    let l = read_variable_length_integer(&mut cursor)? as usize;
+                    match value_type {
+                        OptionalMetadata::ColumnName => {
+                            let column_name = read_one_byte_length_prefixed_string(&mut cursor)?;
+                            column_names.push(column_name);
+                        },
+                        _ => {
+                            let _value = read_nbytes(&mut cursor, l);
+                        }
                     }
 
-                }
+                }*/
 
                 Ok(Some(EventData::TableMapEvent {
                     table_id,
