@@ -117,6 +117,7 @@ impl ColumnType {
                 // XXX todo this actually includes some of the bits from f1
                 match real_type {
                     ColumnType::Enum(_) => ColumnType::Enum(real_size),
+                    ColumnType::MyString(_) => ColumnType::MyString(real_size),
                     i => unimplemented!("unimplemented stringy type {:?}", i),
                 }
             }
