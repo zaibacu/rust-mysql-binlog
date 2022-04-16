@@ -8,6 +8,7 @@ pub struct SingleTableMap {
     pub(crate) schema_name: String,
     pub(crate) table_name: String,
     pub(crate) columns: Vec<ColumnType>,
+    pub(crate) column_names: Vec<String>,
 }
 
 /// A MySQL binary log includes Table Map events; the first time a table is referenced in a given
@@ -36,11 +37,13 @@ impl TableMap {
         schema_name: String,
         table_name: String,
         columns: Vec<ColumnType>,
+        column_names: Vec<String>,
     ) {
         let map = SingleTableMap {
             schema_name,
             table_name,
             columns,
+            column_names,
         };
         self.inner.insert(table_id, map);
     }

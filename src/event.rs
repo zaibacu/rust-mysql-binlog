@@ -99,6 +99,45 @@ impl TypeCode {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum OptionalMetadata {
+    Signedness,
+    DefaultCharset,
+    ColumnCharset,
+    ColumnName,
+    SetStrValue,
+    EnumStrValue,
+    GeometryType,
+    SimplePrimaryKey,
+    PirmaryKeyWithPrefix,
+    EnumAndSetDefaultCharset,
+    EnumAndSetColumnCharset,
+    ColumnVisibility,
+    OtherUnknown(u8),
+}
+
+impl OptionalMetadata {
+    fn from_byte(b: u8) -> Self {
+        match b {
+            1 => OptionalMetadata::Signedness,
+            2 => OptionalMetadata::DefaultCharset,
+            3 => OptionalMetadata::ColumnCharset,
+            4 => OptionalMetadata::ColumnName,
+            5 => OptionalMetadata::SetStrValue,
+            6 => OptionalMetadata::EnumStrValue,
+            7 => OptionalMetadata::GeometryType,
+            8 => OptionalMetadata::SimplePrimaryKey,
+            9 => OptionalMetadata::PirmaryKeyWithPrefix,
+            10 => OptionalMetadata::EnumAndSetDefaultCharset,
+            11 => OptionalMetadata::EnumAndSetColumnCharset,
+            12 => OptionalMetadata::ColumnVisibility,
+            i => OptionalMetadata::OtherUnknown(i),
+        }
+    }
+}
+
+
 #[derive(Debug, Serialize)]
 pub enum ChecksumAlgorithm {
     None,
@@ -146,6 +185,7 @@ pub enum EventData {
         schema_name: String,
         table_name: String,
         columns: Vec<ColumnType>,
+        column_names: Vec<String>,
         null_bitmap: BitSet,
     },
     WriteRowsEvent {
@@ -414,11 +454,30 @@ impl EventData {
                 let null_bitmask_size = (num_columns + 7) >> 3;
                 let null_bitmap_source = read_nbytes(&mut cursor, null_bitmask_size)?;
                 let nullable_bitmap = BitSet::from_slice(num_columns, &null_bitmap_source).unwrap();
+
+                let pos = cursor.tell()? as usize;
+                let mut column_names = Vec::new();
+                // Optional metadata
+                loop {
+                    let value_type = OptionalMetadata::from_byte(cursor.read_u8()?);
+                    let l = read_variable_length_integer(&mut cursor)? as usize;
+                    match value_type {
+                        OptionalMetadata::ColumnName => {
+                            let column_name = read_one_byte_length_prefixed_string(&mut cursor)?;
+                            column_names.push(column_name);
+                            break; // We only care about column name at this point
+                        },
+                        _ => {}
+                    }
+
+                }
+
                 Ok(Some(EventData::TableMapEvent {
                     table_id,
                     schema_name,
                     table_name,
                     columns: final_columns,
+                    column_names: column_names,
                     null_bitmap: nullable_bitmap,
                 }))
             }

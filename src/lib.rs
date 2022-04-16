@@ -76,6 +76,7 @@ pub struct BinlogEvent {
     pub table_name: Option<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub rows: Vec<event::RowEvent>,
+    pub columns: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub query: Option<String>,
     pub offset: u64,
@@ -136,10 +137,11 @@ impl<BR: Read + Seek> Iterator for EventIterator<BR> {
                         schema_name,
                         table_name,
                         columns,
+                        column_names,
                         ..
                     } => {
                         self.table_map
-                            .handle(table_id, schema_name, table_name, columns);
+                            .handle(table_id, schema_name, table_name, columns, column_names);
                     }
                     EventData::QueryEvent { query, .. } => {
                         return Some(Ok(BinlogEvent {
@@ -151,6 +153,7 @@ impl<BR: Read + Seek> Iterator for EventIterator<BR> {
                             table_name: None,
                             schema_name: None,
                             rows: Vec::new(),
+                            columns: None,
                             query: Some(query),
                         }))
                     }
@@ -158,6 +161,7 @@ impl<BR: Read + Seek> Iterator for EventIterator<BR> {
                     | EventData::UpdateRowsEvent { table_id, rows }
                     | EventData::DeleteRowsEvent { table_id, rows } => {
                         let maybe_table = self.table_map.get(table_id);
+                        let column_names = maybe_table.as_ref().map(|a| a.column_names.clone());
                         let message = BinlogEvent {
                             offset,
                             type_code: event.type_code(),
@@ -167,6 +171,7 @@ impl<BR: Read + Seek> Iterator for EventIterator<BR> {
                             table_name: maybe_table.as_ref().map(|a| a.table_name.to_owned()),
                             schema_name: maybe_table.as_ref().map(|a| a.schema_name.to_owned()),
                             rows,
+                            columns: column_names,
                             query: None,
                         };
                         return Some(Ok(message));
