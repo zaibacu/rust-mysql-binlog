@@ -279,6 +279,18 @@ impl ColumnType {
                 let val = read_var_byte_length_prefixed_bytes(r, length_bytes)?;
                 Ok(MySQLValue::Blob(val.into()))
             }
+            &ColumnType::LongBlob(length_bytes) => {
+                let val = read_var_byte_length_prefixed_bytes(r, length_bytes)?;
+                Ok(MySQLValue::Blob(val.into()))
+            }
+            &ColumnType::MediumBlob(length_bytes) => {
+                let val = read_var_byte_length_prefixed_bytes(r, length_bytes)?;
+                Ok(MySQLValue::Blob(val.into()))
+            }
+            &ColumnType::TinyBlob(length_bytes) => {
+                let val = read_var_byte_length_prefixed_bytes(r, length_bytes)?;
+                Ok(MySQLValue::Blob(val.into()))
+            }
             &ColumnType::Float(length) | &ColumnType::Double(length) => {
                 if length == 4 {
                     Ok(MySQLValue::Float(r.read_f32::<LittleEndian>()?))
@@ -304,14 +316,11 @@ impl ColumnType {
                 let body = read_var_byte_length_prefixed_bytes(r, size)?;
                 Ok(MySQLValue::Json(jsonb::parse(body)?))
             }
-            ColumnType::MyString => {
+            &ColumnType::MyString => {
                 let value = read_two_byte_length_prefixed_string(r)?;
                 Ok(MySQLValue::String(value))
             }
-            &ColumnType::TinyBlob
-            | &ColumnType::MediumBlob
-            | &ColumnType::LongBlob
-            | &ColumnType::VarString => {
+            &ColumnType::VarString => {
                 // the manual promises that these are never present in binlogs and are
                 // not implemented by MySQL
                 Err(ColumnParseError::UnimplementedTypeError {
