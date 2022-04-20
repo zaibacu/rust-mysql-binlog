@@ -118,8 +118,9 @@ impl ColumnType {
                 match real_type {
                     ColumnType::Enum(_) => ColumnType::Enum(real_size),
                     ColumnType::MyString => ColumnType::MyString,
-                    ColumnType::TinyBlob(_) => ColumnType::Blob(real_size),
-                    ColumnType::MediumBlob(_) => ColumnType::Blob(real_size),
+                    ColumnType::TinyBlob => ColumnType::Blob(1),
+                    ColumnType::MediumBlob => ColumnType::Blob(3),
+                    ColumnType::LongBlob => ColumnType::Blob(4),
                     i => unimplemented!("unimplemented stringy type {:?}", i),
                 }
             }
@@ -281,16 +282,16 @@ impl ColumnType {
                 let val = read_var_byte_length_prefixed_bytes(r, length_bytes)?;
                 Ok(MySQLValue::Blob(val.into()))
             }
-            &ColumnType::LongBlob(length_bytes) => {
-                let val = read_var_byte_length_prefixed_bytes(r, length_bytes)?;
+            &ColumnType::LongBlob => {
+                let val = read_var_byte_length_prefixed_bytes(r, 4)?;
                 Ok(MySQLValue::Blob(val.into()))
             }
-            &ColumnType::MediumBlob(length_bytes) => {
-                let val = read_var_byte_length_prefixed_bytes(r, length_bytes)?;
+            &ColumnType::MediumBlob => {
+                let val = read_var_byte_length_prefixed_bytes(r, 3)?;
                 Ok(MySQLValue::Blob(val.into()))
             }
-            &ColumnType::TinyBlob(length_bytes) => {
-                let val = read_var_byte_length_prefixed_bytes(r, length_bytes)?;
+            &ColumnType::TinyBlob => {
+                let val = read_var_byte_length_prefixed_bytes(r, 1)?;
                 Ok(MySQLValue::Blob(val.into()))
             }
             &ColumnType::Float(length) | &ColumnType::Double(length) => {
