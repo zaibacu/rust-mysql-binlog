@@ -118,8 +118,8 @@ impl ColumnType {
                 match real_type {
                     ColumnType::Enum(_) => ColumnType::Enum(real_size),
                     ColumnType::MyString => ColumnType::MyString,
-                    ColumnType::TinyBlob => ColumnType::Blob,
-                    ColumnType::MediumBlob => ColumnType::Blob,
+                    ColumnType::TinyBlob(_) => ColumnType::Blob(real_size),
+                    ColumnType::MediumBlob(_) => ColumnType::Blob(real_size),
                     i => unimplemented!("unimplemented stringy type {:?}", i),
                 }
             }
