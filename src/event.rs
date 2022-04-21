@@ -457,6 +457,7 @@ impl EventData {
                 // Optional metadata
                 let mut column_names = Vec::new();
                 let mut pos = cursor.tell()? as usize;
+                /*
                 while pos < data.len() {
                     let value_type = OptionalMetadata::from_byte(cursor.read_u8()?);
                     let l = read_variable_length_integer(&mut cursor)? as usize;
@@ -470,23 +471,6 @@ impl EventData {
                         }
                     }
                     pos = cursor.tell()? as usize;
-                } 
-                //let value_type = OptionalMetadata::from_byte(cursor.read_u8()?);
-                //println!("Value type: {:?}", value_type);
-                /*loop {
-                    let value_type = OptionalMetadata::from_byte(cursor.read_u8()?);
-                    println!("Value type: {:?}", value_type);
-                    let l = read_variable_length_integer(&mut cursor)? as usize;
-                    match value_type {
-                        OptionalMetadata::ColumnName => {
-                            let column_name = read_one_byte_length_prefixed_string(&mut cursor)?;
-                            column_names.push(column_name);
-                        },
-                        _ => {
-                            let _value = read_nbytes(&mut cursor, l);
-                        }
-                    }
-
                 }*/
 
                 Ok(Some(EventData::TableMapEvent {
