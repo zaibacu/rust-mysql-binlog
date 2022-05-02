@@ -109,7 +109,7 @@ impl ColumnType {
                 let num_decimals = cursor.read_u8()?;
                 ColumnType::NewDecimal(precision, num_decimals)
             }
-            ColumnType::MyString => {
+            ColumnType::VarString | ColumnType::MyString => {
                 let f1 = cursor.read_u8()?;
                 let f2 = cursor.read_u8()?;
                 let (real_type, max_length) = if f1 == 0 {
@@ -349,7 +349,10 @@ impl ColumnType {
             | &ColumnType::Bit(..)
             | &ColumnType::Set(..)
             | &ColumnType::Geometry(..) => {
-                unimplemented!("unhandled value type: {:?}", self);
+                // unimplemented!("unhandled value type: {:?}", self);
+                Err(ColumnParseError::UnimplementedTypeError {
+                    column_type: self.clone(),
+                })
             }
         }
     }

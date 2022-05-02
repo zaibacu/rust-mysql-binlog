@@ -4,6 +4,7 @@ use std::io::{self, Cursor, ErrorKind, Read, Seek};
 use byteorder::{ByteOrder, LittleEndian, ReadBytesExt};
 use serde::Serialize;
 use uuid::Uuid;
+use log::error;
 
 use crate::bit_set::BitSet;
 use crate::column_types::ColumnType;
@@ -228,12 +229,21 @@ fn parse_one_row<R: Read + Seek>(
         }
         let is_null = null_bitmask.is_set(null_index);
         let val = if is_null {
-            MySQLValue::Null
+            Some(MySQLValue::Null)
         } else {
             //println!("parsing column {} ({:?})", i, column_definition);
-            column_definition.read_value(&mut cursor)?
+            match column_definition.read_value(&mut cursor) {
+                Ok(val) => Some(val),
+                Err(err) => {
+                    error!("{} on table '{}'. Most likely column type is unimplemented", err, this_table_map.table_name.clone());
+                    None
+                }
+            }
         };
-        row.push(Some(val));
+        match val {
+            Some(v) => row.push(Some(v)),
+            None => {}
+        }
         null_index += 1;
     }
     //println!("finished row: {:?}", row);
