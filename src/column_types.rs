@@ -129,7 +129,7 @@ impl ColumnType {
                 };
                 // XXX todo this actually includes some of the bits from f1
                 match real_type {
-                    ColumnType::Enum(_) => ColumnType::Enum(real_size),
+                    ColumnType::Enum(_) => ColumnType::Enum(max_length),
                     ColumnType::MyString => ColumnType::VarChar(max_length),
                     ColumnType::TinyBlob => ColumnType::Blob(1),
                     ColumnType::MediumBlob => ColumnType::Blob(3),
