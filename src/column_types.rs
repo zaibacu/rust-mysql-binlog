@@ -329,6 +329,14 @@ impl ColumnType {
                 };
                 Ok(MySQLValue::Enum(enum_value))
             }
+            &ColumnType::Set(length_bytes) => {
+                let enum_value = match (length_bytes & 0xff) as u8 {
+                    0x01 => i16::from(r.read_i8()?),
+                    0x02 => r.read_i16::<LittleEndian>()?,
+                    i => unimplemented!("unhandled Enum pack_length {:?}", i),
+                };
+                Ok(MySQLValue::Enum(enum_value))
+            }
             &ColumnType::Json(size) => {
                 let body = read_var_byte_length_prefixed_bytes(r, size)?;
                 Ok(MySQLValue::Json(jsonb::parse(body)?))
