@@ -222,6 +222,7 @@ fn parse_one_row<R: Read + Seek>(
     )
     .unwrap();
     let mut null_index = 0;
+    let mut last_error: Option<ColumnParseError> = None;
     for (i, column_definition) in this_table_map.columns.iter().enumerate() {
         if !present_bitmask.is_set(i) {
             row.push(None);
@@ -236,18 +237,25 @@ fn parse_one_row<R: Read + Seek>(
                 Ok(val) => Some(val),
                 Err(err) => {
                     error!("{} on table '{}'. Most likely column type is unimplemented", err, this_table_map.table_name.clone());
+                    last_error = Some(err);
                     None
                 }
             }
         };
         match val {
             Some(v) => row.push(Some(v)),
-            None => {}
+            None => {
+            }
         }
         null_index += 1;
     }
     //println!("finished row: {:?}", row);
-    Ok(row)
+    if last_error.is_none() {
+        Ok(row)
+    }
+    else {
+        Err(last_error.unwrap())
+    }
 }
 
 #[derive(Debug, Serialize)]
