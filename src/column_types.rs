@@ -31,7 +31,7 @@ pub enum ColumnType {
     Bit(u8, u8),
     NewDecimal(u8, u8),
     Enum(u16),
-    Set,
+    Set(u16),
     TinyBlob,
     MediumBlob,
     LongBlob,
@@ -68,7 +68,8 @@ impl ColumnType {
             245 => ColumnType::Json(0), // need to implement JsonB
             246 => ColumnType::NewDecimal(0, 0),
             247 => ColumnType::Enum(0),
-            248 => ColumnType::TinyBlob,   // docs say this can't occur
+            248 => ColumnType::Set(0),
+            249 => ColumnType::TinyBlob,   // docs say this can't occur
             250 => ColumnType::MediumBlob, // docs say this can't occur
             251 => ColumnType::LongBlob,   // docs say this can't occur
             252 => ColumnType::Blob(0),
@@ -108,16 +109,28 @@ impl ColumnType {
                 let num_decimals = cursor.read_u8()?;
                 ColumnType::NewDecimal(precision, num_decimals)
             }
-            ColumnType::VarString | ColumnType::MyString => {
+            ColumnType::MyString => {
                 let f1 = cursor.read_u8()?;
                 let f2 = cursor.read_u8()?;
-                let real_type = f1;
-                let real_type = ColumnType::from_byte(real_type);
-                let real_size: u16 = f2.into();
+                let (real_type, max_length) = if f1 == 0 {
+                    // not sure which version of mysql emits this,
+                    // but log_event.cc checks this case
+                    (ColumnType::MyString, f2 as u16)
+                } else {
+                    // The max length is in 0-1023,
+                    // (since CHAR(255) CHARACTER SET utf8mb4 turns into max_length=1020)
+                    // and the upper 4 bits of real_type are always set
+                    // (in real_type = MYSQL_TYPE_ENUM, MYSQL_TYPE_SET, MYSQL_TYPE_STRING)
+                    // So MySQL packs the upper bits of the length
+                    // in the 0x30 bits of the type, inverted
+                    let real_type = f1 | 0x30;
+                    let max_length = (!f1 as u16) << 4 & 0x300 | f2 as u16;
+                    (ColumnType::from_byte(real_type), max_length)
+                };
                 // XXX todo this actually includes some of the bits from f1
                 match real_type {
                     ColumnType::Enum(_) => ColumnType::Enum(real_size),
-                    ColumnType::MyString => ColumnType::MyString,
+                    ColumnType::MyString => ColumnType::VarChar(max_length),
                     ColumnType::TinyBlob => ColumnType::Blob(1),
                     ColumnType::MediumBlob => ColumnType::Blob(3),
                     ColumnType::LongBlob => ColumnType::Blob(4),
@@ -333,7 +346,7 @@ impl ColumnType {
             &ColumnType::Decimal
             | &ColumnType::NewDate
             | &ColumnType::Bit(..)
-            | &ColumnType::Set
+            | &ColumnType::Set(..)
             | &ColumnType::Geometry(..) => {
                 unimplemented!("unhandled value type: {:?}", self);
             }
