@@ -131,6 +131,7 @@ impl ColumnType {
                 match real_type {
                     ColumnType::Enum(_) => ColumnType::Enum(max_length),
                     ColumnType::MyString => ColumnType::VarChar(max_length),
+                    ColumnType::Set(_) => ColumnType::Set(max_length),
                     ColumnType::TinyBlob => ColumnType::Blob(1),
                     ColumnType::MediumBlob => ColumnType::Blob(3),
                     ColumnType::LongBlob => ColumnType::Blob(4),
