@@ -330,12 +330,13 @@ impl ColumnType {
                 Ok(MySQLValue::Enum(enum_value))
             }
             &ColumnType::Set(length_bytes) => {
-                let enum_value = match (length_bytes & 0xff) as u8 {
-                    0x01 => i16::from(r.read_i8()?),
-                    0x02 => r.read_i16::<LittleEndian>()?,
-                    i => unimplemented!("unhandled Enum pack_length {:?}", i),
-                };
-                Ok(MySQLValue::Enum(enum_value))
+                let value = i64::from(
+                    r.read_i32::<LittleEndian>()?,
+                );
+
+                // We should convert this value into binary string. And every 1 inside that string marks which value is selected
+                // Maximum of 64 values.
+                Ok(MySQLValue::SignedInteger(value))
             }
             &ColumnType::Json(size) => {
                 let body = read_var_byte_length_prefixed_bytes(r, size)?;
