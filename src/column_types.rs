@@ -330,9 +330,13 @@ impl ColumnType {
                 Ok(MySQLValue::Enum(enum_value))
             }
             &ColumnType::Set(length_bytes) => {
-                let value = i64::from(
-                    r.read_i32::<LittleEndian>()?,
-                );
+                let value = match length_bytes {
+                    1 => i64::from(r.read_i8()?),
+                    2 => i64::from(r.read_i16::<LittleEndian>()?),
+                    3 => i64::from(r.read_i32::<LittleEndian>()?),
+                    4 => i64::from(r.read_i64::<LittleEndian>()?),
+                    i => unimplemented!("Don't know how to handle Set length {}", i)
+                };
 
                 // We should convert this value into binary string. And every 1 inside that string marks which value is selected
                 // Maximum of 64 values.
